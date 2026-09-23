@@ -4,7 +4,7 @@ from uuid import UUID
 
 import asyncpg
 
-from app.rag.kb.models import Match
+from app.rag.kb.models import Match_tag
 
 _DOC_COLUMNS = """
   d.id, d.filename, d.content_hash, d.uploaded_at, d.page_count, d.chunk_count, d.status, d.required_level, d.error,
@@ -407,7 +407,7 @@ async def count_chunks(pool: asyncpg.Pool, document_id: UUID) -> int:
 # --- Retrieval core ----------------------------------------------------------------------------
 
 async def search(pool: asyncpg.Pool, embedding: list[float], *, levels: Sequence[str], top_k: int = 5, tags: Sequence[str] | None = None, 
-                 match: Match = "any", document_ids: Sequence[UUID] | None = None, hybrid_text: str | None = None,
+                 match: Match_tag = "any", document_ids: Sequence[UUID] | None = None, hybrid_text: str | None = None,
     ) -> list[asyncpg.Record]:
     """Find the chunks most relevant to a question. Dense (default) or hybrid (dense + hybrid_text) search. 
     The caller may filter by access level, tags, and document.
