@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import AsyncIterator, Sequence
 from typing import Any
 
@@ -12,7 +13,7 @@ from app.mcp_server.tools import INSTRUCTIONS, mcp
 
 MAX_TOOL_CALLS = 6
 
-ANSWERING_RULES = (
+ANSWERING_RULES = inspect.cleandoc(
     """
     You answer employees' questions about the content in documents in this knowledge base, in a chat.
 
