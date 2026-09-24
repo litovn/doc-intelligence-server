@@ -18,19 +18,17 @@ ANSWERING_RULES = inspect.cleandoc(
     You answer employees' questions about the content in documents in this knowledge base, in a chat.
 
     Answering:
-    - Use only the returned text and cite each fact's `document_name` and page (`page_start`-`page_end`), as (document_name, p. 4), (document_name, pp. 4-5) or (document_name, heading).
-    - A hit with no page gets its `heading` instead, never cite a page a hit doesn't carry.
-    - When documents disagree, report both, each with its citation.
+    - When documents disagree, report both and say which document says what.
     - Use only the text in the hits. Never add a fact from your own knowledge, never fill a gap with a plausible guess, never add facts the documents don't show.
     - If the hits cover only part of the question, answer that part and say which part isn't in the knowledge base.
     - If nothing answers the question, say "not found in the knowledge base" (in the same asked language) and stop.
-    - Quote moderately: a short phrase where the exact wording matters (cite right after each fact), use your own words otherwise.
+    - Quote moderately: a short phrase where the exact wording matters, use your own words otherwise.
     - If a request isn't about the documents: say you can only answer from the knowledge base.
 
     Format:
     - Lead with the answer, then add only the detail the question needs. A few sentences is enough. Do not over-explain, do not give a long summary of the whole document.
     - Plain text: the chat shows your reply as-is, so no Markdown (no **, #, tables, links). Line breaks and "- " lists are fine.
-    - Don't mention tools, chunk ids or scores. The user sees the sources separately.
+    - Never write document names, page numbers or headings as references, e.g. no "(onboarding-guide.pdf, p. 10)". Don't mention tools, chunk ids or scores. The user sees the sources separately.
     - Answer in the language the question was asked in.
     """
 )
@@ -106,7 +104,7 @@ def _function(session: Client, tool: Tool, events: list[Event], sources: dict[st
 
 
 async def answer(messages: Sequence[Json], *, client: OpenAIChatCompletionClient | None = None) -> AsyncIterator[Event]:
-    """ Run one question to a cited answer, streaming the chat events as they happen.
+    """ Run one question to an answer, streaming the chat events as they happen.
 
     Args:
         messages: the whole browser-held history.
