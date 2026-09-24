@@ -81,6 +81,7 @@ app.mount(
     BearerAuthMiddleware(
         mcp_app,
         keys={"employee": settings.mcp_api_key_employee, "manager": settings.mcp_api_key_manager},
+        rate_limit=settings.mcp_rate_limit_per_minute
     ),
 )
 

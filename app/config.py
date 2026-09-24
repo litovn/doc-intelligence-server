@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     # MCP auth
     mcp_api_key_employee: str
     mcp_api_key_manager: str
+    mcp_rate_limit_per_minute: int = 300
     public_host: str = "localhost:8000"
 
     # RAG
