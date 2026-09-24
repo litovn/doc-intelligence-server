@@ -109,14 +109,15 @@ async def get_by_hash_ready(pool: asyncpg.Pool, content_hash: str):
     )
 
 
-async def list_documents(pool: asyncpg.Pool, *, levels: Sequence[str], tag: str | None = None, 
-                         ready_only: bool = True, limit: int = 50
+async def list_documents(pool: asyncpg.Pool, *, levels: Sequence[str], tag: str | None = None,
+                         name_words: Sequence[str] = (), ready_only: bool = True, limit: int = 50
     ) -> tuple[int, list[asyncpg.Record]]:
     """List of the documents the viewer may see, newest first, plus the total number of matches.
 
     Args:
         levels: access levels the viewer may read, documents above the viewer's level are never considered.
         tag: only documents carrying this tag.
+        name_words: only documents whose filename contains every one of these words, case-insensitive.
         ready_only: True to hide `processing` and `failed` documents. False, otherwhise
         limit: maximum number of rows returned.
 
@@ -135,6 +136,10 @@ async def list_documents(pool: asyncpg.Pool, *, levels: Sequence[str], tag: str 
         where.append(
             f"EXISTS (SELECT 1 FROM document_tags f WHERE f.document_id = d.id AND f.tag = ${len(args)})"
         )
+
+    for word in name_words:  #a word matches only itself
+        args.append("%" + word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%")
+        where.append(f"d.filename ILIKE ${len(args)}")
 
     if ready_only:
         where.append("d.status = 'ready'")
