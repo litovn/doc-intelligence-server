@@ -1,0 +1,10 @@
+fastapi>=0.141
+uvicorn[standard]>=0.30
+mcp>=2,<3
+asyncpg>=0.30
+pgvector>=0.3.6
+tiktoken>=0.14
+openai>=1.50
+agent-framework-openai>=1.14
+azure-ai-documentintelligence>=1.0.2
+pydantic-settings>=2.5
