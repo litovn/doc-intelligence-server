@@ -86,6 +86,27 @@ def _empty_hint(filters: SearchFilters) -> str:
     )
 
 
+def _documents_hint(total: int, shown: int, *, filtered: bool) -> str | None:
+    """ Tell the model how to narrow a cut-off document list, or what to try when a filter matched nothing."""
+    if total == 0 and filtered:
+        return "No document matches. Try fewer words in `name`, another `tag`, or `search` the topic instead."
+
+    if shown < total:
+        return f"Showing {shown} of {total}. Narrow with `name` or `tag`, or raise `limit` (max 200)."
+
+    return None
+
+
+def _name_words(name: str | None) -> list[str]:
+    """ Split a `name` filter into words, so 'personal loan' matches 'contoso-personal-loan-manual.docx'."""
+    return [w for w in re.split(r"[\s_.\-]+", name.lower()) if w] if name else []
+
+
+def _body(text: str, section: str | None) -> str:
+    """ A chunk's text without the heading path ingestion prefixed to it for embedding; hits carry it as `heading`."""
+    return text.removeprefix(f"{section}\n\n") if section else text
+
+
 # The one service REST and MCP both call.
 class KnowledgeBase:
     def __init__(self, pool: asyncpg.Pool) -> None:
@@ -124,16 +145,15 @@ class KnowledgeBase:
         hits = [
             Hit(
                 rank=rank,
-                score=round(r["score"], 4),  
-                document_id=str(r["document_id"]),
+                score=round(r["score"], 4),
                 document_name=r["filename"],
                 tags=list(r["tags"]),
-                heading=r["section"],  
+                heading=r["section"],
                 page_start=r["page_start"],
                 page_end=r["page_end"],
                 chunk_id=r["id"],
                 chunk_index=r["chunk_index"],
-                text=r["text"]
+                text=_body(r["text"], r["section"])
             )
             for rank, r in enumerate(kept, start=1)  # rows arrive best first; rank from 1
         ]
@@ -343,31 +363,36 @@ class KnowledgeBase:
         )
 
 
-    async def list_documents(self, *, tag: str | None = None, ready_only: bool = True, limit: int = 50,) -> ListDocumentsResult:
+    async def list_documents(self, *, tag: str | None = None, name: str | None = None, ready_only: bool = True, limit: int = 50) -> ListDocumentsResult:
         """ List documents, newest first, limited to what the viewer may read.
 
         Args:
             tag: only documents carrying this tag; must exist in the vocabulary.
+            name: only documents whose filename contains every word of it, case-insensitive.
             ready_only: False to include `processing` and `failed` rows (the UI polls them).
             limit: maximum number of documents returned.
 
         Returns:
-            `total` matching documents and up to `limit` of them; 
-            `total` above the number returned means the list was cut off.
+            `total` matching documents and up to `limit` of them;
+            `total` above the number returned means the list was cut off, and `hint` says how to narrow it.
         """
         if tag is not None:
             await self._check_tags([tag])
 
+        words = _name_words(name)
         total, rows = await queries.list_documents(
             self._pool,
             levels=visible_levels(),
             tag=tag,
+            name_words=words,
             ready_only=ready_only,
             limit=limit,
         )
 
         return ListDocumentsResult(
-            total=total, documents=[DocumentRecord.from_row(r) for r in rows]
+            total=total,
+            documents=[DocumentRecord.from_row(r) for r in rows],
+            hint=_documents_hint(total, len(rows), filtered=tag is not None or bool(words)),
         )
 
 
@@ -484,7 +509,7 @@ class KnowledgeBase:
                     heading=r["section"],
                     page_start=r["page_start"],
                     page_end=r["page_end"],
-                    text=r["text"],
+                    text=_body(r["text"], r["section"]),
                 )
                 for r in rows
             ],
