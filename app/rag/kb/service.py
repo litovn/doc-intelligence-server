@@ -16,11 +16,13 @@ from app.rag.ingestion.parse import parse
 from app.rag.kb.models import (
     ChunkContextResult,
     ContextChunk,
+    DocumentOutline,
     DocumentRecord,
     Hit,
     IngestResult,
     ListDocumentsResult,
     Match_tag,
+    OutlineSection,
     SearchFilters,
     SearchResult,
     TagInfo,
@@ -159,6 +161,28 @@ class KnowledgeBase:
             return await queries.get_by_id(self._pool, UUID(id_or_name))
         except ValueError:
             return await queries.get_by_filename(self._pool, id_or_name)
+
+
+    async def _resolve_documents(self, documents: Sequence[str]) -> list[UUID]:
+        """ Turn document names or ids into ids, or raise naming the closest readable document.
+
+        Args:
+            documents: filenames or document ids, as the caller gave them.
+
+        Returns:
+            The ids, in the order given.
+
+        Raises:
+            UnknownDocumentError: a name matches no document the viewer may read.
+        """
+        ids, unknown = await queries.resolve_document_ids(self._pool, documents, levels=visible_levels())
+
+        if unknown:
+            known = [d.name for d in (await self.list_documents(limit=200)).documents]
+            raise UnknownDocumentError(
+                f"Unknown document {unknown[0]!r}." + _suggest(unknown[0], known, "list_documents")
+            )
+        return ids
 
 
     async def _check_tags(self, tags: Sequence[str]):
@@ -425,14 +449,8 @@ class KnowledgeBase:
         """ Search top_k number of hits for the given query in only the named documents."""
         if not documents:
             raise ValueError("Give at least one document name or id.")
-        
-        ids, unknown = await queries.resolve_document_ids(self._pool, documents, levels=visible_levels())
 
-        if unknown:
-            known = [d.name for d in (await self.list_documents(limit=200)).documents]
-            raise UnknownDocumentError(
-                f"Unknown document {unknown[0]!r}." + _suggest(unknown[0], known, "list_documents")
-            )
+        ids = await self._resolve_documents(documents)
 
         return await self._search(
             query,
@@ -469,5 +487,29 @@ class KnowledgeBase:
                     text=r["text"],
                 )
                 for r in rows
+            ],
+        )
+
+
+    async def get_document_outline(self, document: str) -> DocumentOutline:
+        """ Return a document's sections (heading paths) in reading order, with pages and chunk counts."""
+
+        [document_id] = await self._resolve_documents([document])
+        row = await queries.get_by_id(self._pool, document_id)
+        sections = await queries.get_document_outline(self._pool, document_id)
+
+        return DocumentOutline(
+            document_id=str(document_id),
+            document_name=row["filename"],
+            page_count=row["page_count"],
+            sections=[
+                OutlineSection(
+                    heading=s["section"] or None,  # "" = text before the first heading
+                    page_start=s["page_start"],
+                    page_end=s["page_end"],
+                    chunk_count=s["chunk_count"],
+                    first_chunk_id=s["first_chunk_id"],
+                )
+                for s in sections
             ],
         )

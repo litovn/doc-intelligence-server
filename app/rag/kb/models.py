@@ -128,6 +128,25 @@ class ChunkContextResult(BaseModel):
     chunks: list[ContextChunk]
 
 
+# --- Document outline -------------------------------------------------------------------------
+
+# One section of a document: a heading path and where it sits.
+class OutlineSection(BaseModel):
+    heading: str | None  
+    page_start: int | None
+    page_end: int | None
+    chunk_count: int
+    first_chunk_id: str  
+    
+
+# A document's table of contents, built from the headings its chunks were split at.
+class DocumentOutline(BaseModel):
+    document_id: str
+    document_name: str
+    page_count: int | None
+    sections: list[OutlineSection]
+
+
 # --- Ingestion -------------------------------------------------------------------------
 
 # What `KnowledgeBase.stage` and `.ingest` return. 

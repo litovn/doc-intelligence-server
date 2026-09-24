@@ -397,6 +397,24 @@ async def get_chunk_context(pool: asyncpg.Pool, document_id: UUID, chunk_index: 
     )
 
 
+async def get_document_outline(pool: asyncpg.Pool, document_id: UUID) -> list[asyncpg.Record]:
+    """One row per section (heading path) of a document, in reading order.
+
+    Args:
+        document_id: the document to outline.
+
+    Returns:
+        Rows of `section`, `page_start`, `page_end`, `chunk_count` and `first_chunk_id`.
+        `section` is empty for text before the first heading.
+    """
+    return await pool.fetch(
+        "SELECT section, min(page_start) AS page_start, max(page_end) AS page_end, "
+        "count(*) AS chunk_count, (array_agg(id ORDER BY chunk_index))[1] AS first_chunk_id "
+        "FROM chunks WHERE document_id = $1 GROUP BY section ORDER BY min(chunk_index)",
+        document_id
+    )
+
+
 async def count_chunks(pool: asyncpg.Pool, document_id: UUID) -> int:
     return await pool.fetchval(
         "SELECT count(*) FROM chunks WHERE document_id = $1", 
