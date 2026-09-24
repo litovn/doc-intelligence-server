@@ -4,7 +4,7 @@ from typing import Literal, Self
 import asyncpg
 from pydantic import BaseModel
 
-from app.auth import Level
+from app.auth.levels import Level
 
 
 Status = Literal["processing", "ready", "failed"]

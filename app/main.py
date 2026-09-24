@@ -9,7 +9,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app.api import auth, chat, documents, tags
-from app.auth.deps import require_session
+from app.auth.session_guard import require_session
 from app.config import settings
 from app.mcp_server.auth import BearerAuthMiddleware
 from app.mcp_server.tools import mcp, set_knowledge_base

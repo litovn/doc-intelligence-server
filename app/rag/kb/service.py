@@ -6,7 +6,7 @@ from uuid import UUID
 
 import asyncpg
 
-from app.auth import Level, viewer_level, visible_levels
+from app.auth.levels import Level, viewer_level, visible_levels
 from app.config import settings
 from app.rag import queries
 from app.rag.ingestion.chunk import chunk_document
