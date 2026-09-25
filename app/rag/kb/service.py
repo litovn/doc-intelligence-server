@@ -33,6 +33,10 @@ from app.rag.kb.models import (
 class UnknownDocumentError(ValueError):
     pass
 
+# HTTP status error 409
+class TagExistsError(ValueError):
+    pass
+
 # HTTP status error 403
 class ForbiddenError(Exception):
     pass
@@ -253,7 +257,7 @@ class KnowledgeBase:
 
         # Duplicate: these exact bytes are already `ready` (under any filename). 
         # Nothing to parse or embed again; only the new tags (and a manager's level) are applied.
-        duplicate = await queries.get_by_hash_ready(self._pool, content_hash)
+        duplicate = await queries.get_by_hash_ready(self._pool, content_hash, levels=visible_levels())
         if duplicate is not None:
             await queries.replace_tags(self._pool, duplicate["id"], tags)
 
@@ -273,6 +277,10 @@ class KnowledgeBase:
         # Otherwise look up for the filename identity.
         existing = await queries.get_by_filename(self._pool, filename)
 
+        # Same rule as `delete_document`: only a reader of the document may replace it, in any status.
+        if existing is not None and existing["required_level"] not in visible_levels():
+            raise ForbiddenError(f"Can't replace {filename!r}. Rename the file and upload it again.")
+
         if existing is not None and existing["status"] == "ready":
             document_id = existing["id"] # replacement: same name, new bytes.
 
@@ -287,7 +295,7 @@ class KnowledgeBase:
         )
 
 
-    async def ingest(self, *, filename: str, content: bytes, tags: list[str], required_level: Level | None = None) -> IngestResult:
+    async def ingest(self, *, filename: str, content: bytes, tags: list[str], required_level: Level | None = None, document_id: str | None = None) -> IngestResult:
         """ Phase 2 of `ingest`. Turn an upload into searchable chunks. 
         Slow part, REST runs it in a BackgroundTask after answering 202.
 
@@ -296,17 +304,20 @@ class KnowledgeBase:
             content: the raw file bytes.
             tags: at least one, all from the vocabulary.
             required_level: the requested access level; only a manager's is applied.
+            document_id: the row phase 1 already staged; None runs `stage` first.
 
         Returns:
             `status="ready"` with page and chunk counts; 
             `already_present=True` for a Duplicate;
             `status="failed"` with `error`.
         """
-        staged = await self.stage(filename=filename, content=content, tags=tags, required_level=required_level)
-        if staged.already_present:
-            return staged
-        
-        document_id = UUID(staged.document_id)
+        if document_id is None:
+            staged = await self.stage(filename=filename, content=content, tags=tags, required_level=required_level)
+            if staged.already_present:
+                return staged
+            document_id = staged.document_id
+
+        document_id = UUID(document_id)
         content_hash = hashlib.sha256(content).hexdigest()
 
         row = await queries.get_by_id(self._pool, document_id)
@@ -316,6 +327,8 @@ class KnowledgeBase:
             # parse -> clean -> chunk -> embed, then build one `ChunkRow` per chunk with id `{document_id}:{hash8}:{chunk_index}`.
             parsed = clean(await parse(filename, content))
             chunks = chunk_document(parsed.markdown, parsed.pages)
+            if not chunks: 
+                raise ValueError("No text found in the file.")
             vectors = await self._embedder.embed([c.text for c in chunks])
             rows = [
                 queries.ChunkRow(
@@ -440,11 +453,12 @@ class KnowledgeBase:
 
     async def create_tag(self, name: str, description: str) -> TagInfo:
         """ Add a tag to the vocabulary under a normalised name."""
-        slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+        slug = re.sub(r"[\W_]+", "-", name.lower()).strip("-")  # Unicode letters kept: "Qualità" -> "qualità"
         if not slug:
             raise ValueError(f"Tag name {name!r} has no usable characters.")
 
-        await queries.create_tag(self._pool, slug, description)
+        if not await queries.create_tag(self._pool, slug, description):
+            raise TagExistsError(f"Tag {slug!r} already exists. Edit its description instead.")
 
         return TagInfo.from_row(await queries.get_tag(self._pool, slug))
 
