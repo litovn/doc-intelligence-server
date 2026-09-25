@@ -8,8 +8,8 @@ import tiktoken
 from app.rag.ingestion.parse import PageSpan
 
 _ENC = tiktoken.get_encoding("cl100k_base")  # tokenizer family of text-embedding-3-*
-MAX_TOKENS = 300 
-OVERLAP_TOKENS = 60  
+MAX_TOKENS = 500  # chosen by eval/retrieval.py (README §7)
+OVERLAP_TOKENS = 100  # 20%, only inside a section
 
 # Whole HTML table (DI output). Found first so blank lines inside it can't split it.
 _TABLE = re.compile(r"<table\b.*?</table>", re.IGNORECASE | re.DOTALL)
@@ -184,10 +184,10 @@ def _tail(body: str) -> str:
         body: the text of the chunk just emitted, without the heading prefix.
 
     Returns:
-        The overlap that starts the next chunk. It can begin mid-word or with a space.
+        The overlap that starts the next chunk, empty when OVERLAP_TOKENS is 0. It can begin mid-word or with a space.
     """
     ids = _ENC.encode(body, disallowed_special=())
-    return _ENC.decode(ids[-OVERLAP_TOKENS:]) if len(ids) > OVERLAP_TOKENS else body
+    return _ENC.decode(ids[max(len(ids) - OVERLAP_TOKENS, 0) :])  # not ids[-OVERLAP_TOKENS:]: -0 would keep it all
 
 
 def chunk_document(text: str, pages: Sequence[PageSpan]) -> list[Chunk]:
