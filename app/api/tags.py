@@ -39,7 +39,7 @@ async def create_tag(kb: KB, body: NewTag) -> TagInfo:
         body: the tag's name and description.
 
     Returns:
-        The stored tag, under its normalised name.
+        The stored tag, under its normalised name; 409 if a tag with that name already exists.
     """
     return await kb.create_tag(body.name, body.description)
 

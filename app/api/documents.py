@@ -44,9 +44,10 @@ async def upload(kb: KB, background: BackgroundTasks, file: Annotated[UploadFile
             }
         )
 
-    # PHASE 2, after the response: `ingest` calls `stage` again (it finds the row just inserted),
-    # then parses, chunks and embeds, and marks the row `ready` or `failed` with the error.
-    background.add_task(kb.ingest, filename=filename, content=content, tags=tags, required_level=required_level)
+    # PHASE 2, after the response: `ingest` takes the row phase 1 staged, parses, chunks and embeds,
+    # and marks the row `ready` or `failed` with the error.
+    background.add_task(kb.ingest, filename=filename, content=content, tags=tags, required_level=required_level,
+                        document_id=staged.document_id)
 
     return JSONResponse(
         status_code=status.HTTP_202_ACCEPTED,
