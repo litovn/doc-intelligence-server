@@ -14,7 +14,7 @@ from app.config import settings
 from app.mcp_server.auth import BearerAuthMiddleware
 from app.mcp_server.tools import mcp, set_knowledge_base
 from app.rag.db import init_db
-from app.rag.kb.service import ForbiddenError, KnowledgeBase, UnknownDocumentError
+from app.rag.kb.service import ForbiddenError, KnowledgeBase, TagExistsError, UnknownDocumentError
 from app.rag.queries import TagInUseError
 
 
@@ -106,6 +106,10 @@ async def unknown_document(request: Request, exc: Exception) -> JSONResponse:
 @app.exception_handler(ForbiddenError)
 async def forbidden(request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=403, content={"detail": str(exc)})
+
+@app.exception_handler(TagExistsError)
+async def tag_exists(request: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 @app.exception_handler(ValueError)
 async def bad_request(request: Request, exc: Exception) -> JSONResponse:
