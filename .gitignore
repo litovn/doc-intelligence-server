@@ -1,7 +1,3 @@
-# Project-specific 
-files/
-
-
 # Python template for .gitignore
 ## Byte-compiled / optimized / DLL files
 __pycache__/
