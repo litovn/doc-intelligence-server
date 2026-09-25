@@ -1,7 +1,8 @@
 import difflib
 import hashlib
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 from uuid import UUID
 
 import asyncpg
@@ -107,6 +108,11 @@ def _body(text: str, section: str | None) -> str:
     return text.removeprefix(f"{section}\n\n") if section else text
 
 
+def above_floor(rows: Sequence[Mapping[str, Any]]) -> list:
+    """ Drop weak matches: keep hits scoring at least the relevance floor and hits containing every query word."""
+    return [r for r in rows if r["score"] >= settings.relevance_floor or r["lexical"]]
+
+
 # The one service REST and MCP both call.
 class KnowledgeBase:
     def __init__(self, pool: asyncpg.Pool) -> None:
@@ -139,8 +145,7 @@ class KnowledgeBase:
             hybrid_text=query if settings.hybrid_search else None  
         )
         
-        # Drop weak matches.
-        kept = [r for r in rows if r["score"] >= settings.relevance_floor or r["lexical"]]
+        kept = above_floor(rows)
 
         hits = [
             Hit(

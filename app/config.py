@@ -7,7 +7,6 @@ class Settings(BaseSettings):
     database_url: str
 
     # OpenAI 
-    openai_base_url: str | None = None
     openai_api_key: str
     embedding_model: str = "text-embedding-3-small"
     chat_model: str = "gpt-5.4-mini"
@@ -23,8 +22,8 @@ class Settings(BaseSettings):
     public_host: str = "localhost:8000"
 
     # RAG
-    relevance_floor: float = 0.37
-    hybrid_search: bool = False
+    relevance_floor: float = 0.25
+    hybrid_search: bool = True
 
 
 settings = Settings()
