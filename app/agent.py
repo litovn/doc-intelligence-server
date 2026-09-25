@@ -43,7 +43,6 @@ def chat_client() -> OpenAIChatCompletionClient:
     return OpenAIChatCompletionClient(
         settings.chat_model,
         async_client=AsyncOpenAI(
-            base_url=settings.openai_base_url or None,
             api_key=settings.openai_api_key,
             max_retries=4,
         ),
