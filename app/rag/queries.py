@@ -99,13 +99,16 @@ async def get_by_id(pool: asyncpg.Pool, document_id: UUID):
     )
 
 
-async def get_by_hash_ready(pool: asyncpg.Pool, content_hash: str):
-    """Duplicate check. `ready` rows only, so re-uploading a `failed` document retries it."""
+async def get_by_hash_ready(pool: asyncpg.Pool, content_hash: str, *, levels: Sequence[str]):
+    """Duplicate check. `ready` rows only, so re-uploading a `failed` document retries it;
+    readable ones only, so an upload never learns of, or retags, a document its uploader can't see."""
 
     return await pool.fetchrow(
         f"SELECT {_DOC_COLUMNS} {_DOC_FROM} "
-        "WHERE d.content_hash = $1 AND d.status = 'ready' GROUP BY d.id LIMIT 1",
-        content_hash
+        "WHERE d.content_hash = $1 AND d.status = 'ready' AND d.required_level = ANY($2::text[]) "
+        "GROUP BY d.id LIMIT 1",
+        content_hash,
+        list(levels)
     )
 
 
@@ -248,13 +251,14 @@ async def tag_names(pool: asyncpg.Pool) -> set[str]:
     return {row["name"] for row in rows}
 
 
-async def create_tag(pool: asyncpg.Pool, name: str, description: str):
-    await pool.execute(
-        "INSERT INTO tags (name, description) VALUES ($1, $2) "
-        "ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description",
+async def create_tag(pool: asyncpg.Pool, name: str, description: str) -> bool:
+    """ Insert a new tag; False if the name is taken, leaving the existing tag untouched."""
+    result = await pool.execute(
+        "INSERT INTO tags (name, description) VALUES ($1, $2) ON CONFLICT (name) DO NOTHING",
         name,
         description
     )
+    return result == "INSERT 0 1"
 
 
 async def update_tag_description(pool: asyncpg.Pool, name: str, description: str) -> bool:
