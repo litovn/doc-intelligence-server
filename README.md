@@ -69,6 +69,12 @@ doc-intelligence-server
 
 ## 2. Architecture
 
+<p align="center">
+  <img src="img/indigo.png" alt="App Architecture" width="450">
+</p>
+
+### Flowchart
+
 ```mermaid
 flowchart LR
   B[Browser] -->|session cookie| UI["/ Next.js static export"]
