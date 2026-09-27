@@ -40,6 +40,7 @@ The client wants to connect this knowledge base to an AI assistant. Employees sh
   - [8.2 Retrieval: hybrid search and relevance floor](#82-retrieval-hybrid-search-and-relevance-floor)
   - [8.3 Tool selection](#83-tool-selection)
 - [9. Known limitations and next steps](#9-known-limitations-and-next-steps)
+- [Part 1: AI Assisted Coding](#part-1-ai-assisted-coding)
 
 ## 1. Repository Structure
 
@@ -487,3 +488,6 @@ With the agent's queries, hybrid finds more answers on every kind of document.
 - **Files are not stored.** Changing the chunk size or embedding model means re-uploading the files to apply changes.
 - **No reranker; basic keyword search.** The keyword half of hybrid search uses the `simple` config (no stemming) and `ts_rank`, which has no IDF weighting, so a common word counts as much as a rare one.
 - **Ingestion runs in-process** (`BackgroundTasks`). A restart mid-ingest marks the document `failed` (never half-written) and a re-upload retries it. For that reason the deploy keeps one replica.
+
+## Part 1: AI Assisted Coding
+Answers to the questions can be found in [AI_assisted_coding_questions.md](AI_assisted_coding_questions.md).
