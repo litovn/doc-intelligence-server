@@ -23,9 +23,9 @@ Testing is essential, being non-deterministic, one success does not measure reli
 # 3. The Future:
 > How do you envision your role as an AI Product Engineer evolving over the next few years? What skills do you think will matter most as LLMs get better at writing code?
 
-I believe that both the models and agents will continue to improve. The goal will remain to get leverage from the use of agents without any compromise on the quality of the software. The role of an AI Product Engineer will shift towards orchestrating coding agents and overseeing their work, and the needed engineering skill will evolve to adapt to it, from writing code,to specyfing it and veryfying it. 
+I believe that both the models and agents will continue to improve. The goal will remain to get leverage from the use of agents without any compromise on the quality of the software. The role of an AI Product Engineer will shift towards orchestrating coding agents and overseeing their work, and the needed engineering skill will evolve to adapt to it, from writing code, to specyfing it and veryfying it. 
 
-The problem will no longer implementing a specification but deciding what to build. The skill that will grow the most will be knowing how to shape the product, so product sense, business context and customer goals will become core skill every AI Product Engineer should have. At the same time, the engineer has to own what the  model can't be held accountable for: security, access management, data handing and cost, will become core skills an engineer should develop.
+The problem will no longer be implementing a specification but deciding what to build. The skill that will grow the most will be knowing how to shape the product, so product sense, business context and customer goals will become core skill every AI Product Engineer should have. At the same time, the engineer has to own what the  model can't be held accountable for: security, access management, data handing and cost, will become core skills an engineer should develop and become an expert in.
 Other skills that will matter are: 
 - Making AI applications measurable, reading failures one by one and telling a real improvement apart from noise.
 - Be knowledgable over the domain you are working in. 
